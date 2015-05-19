@@ -1,26 +1,26 @@
-/* jshint globalstrict: true */
-/* global Scope: false */
-"use strict";
+import _ from 'lodash';
+import $ from 'jquery';
+import Scope from '../src/scope.js';
 
-describe("Scope", function () {
+describe("Scope", () => {
 
-  it("can by constructed and used as an object", function () {
-    var scope = new Scope();
+  it("can by constructed and used as an object", () => {
+    let scope = new Scope();
     scope.aProperty = 1;
 
     expect(scope.aProperty).toBe(1);
   });
 
-  describe("digest", function () {
-    var scope;
+  describe("digest", () => {
+    let scope;
 
-    beforeEach(function () {
+    beforeEach(() => {
       scope = new Scope();
     });
 
-    it("calls the listener function on first $digest", function () {
-      var watchFn = function watchFn() {  return "wat"; };
-      var listenerFn = jasmine.createSpy();
+    it("calls the listener function on first $digest", () => {
+      let watchFn = () => "wat";
+      let listenerFn = jasmine.createSpy();
       scope.$watch(watchFn, listenerFn);
 
       scope.$digest();
@@ -29,9 +29,9 @@ describe("Scope", function () {
     });
 
 
-    it('calls the watch function with the scope as the arugment', function() {
-      var watchFn = jasmine.createSpy();
-      var listenerFn = function() {/* noop */};
+    it('calls the watch function with the scope as the arugment', () => {
+      let watchFn = jasmine.createSpy();
+      let listenerFn = () => {}; // noop
       scope.$watch(watchFn, listenerFn);
 
       scope.$digest();
@@ -39,13 +39,13 @@ describe("Scope", function () {
       expect(watchFn).toHaveBeenCalledWith(scope);
     });
 
-    it("calls the listener function when the watched value changes", function() {
+    it("calls the listener function when the watched value changes", () => {
       scope.someValue = 'a';
       scope.counter = 0;
 
       scope.$watch(
-        function(scope) { return scope.someValue; },
-        function(newValue, oldValue, scope) { scope.counter++; }
+        (scope) => scope.someValue,
+        (newValue, oldValue, scope) => scope.counter++
       );
 
       expect(scope.counter).toBe(0);
@@ -63,25 +63,25 @@ describe("Scope", function () {
       expect(scope.counter).toBe(2);
     });
 
-    it('calls the listener function when watch value is first undefined', function() {
+    it('calls the listener function when watch value is first undefined', () => {
       scope.counter = 0;
 
       scope.$watch(
-        function(scope) { return undefined; },
-        function(newValue, oldValue, scope) { scope.counter++; }
+        (scope) => undefined,
+        (newValue, oldValue, scope) => scope.counter++
       );
 
       scope.$digest();
       expect(scope.counter).toBe(1);
     });
 
-    it('calls the listener function with new value as old value the first time', function() {
+    it('calls the listener function with new value as old value the first time', () => {
       scope.someValue = 123;
-      var oldValueGiven;
+      let oldValueGiven;
 
       scope.$watch(
-        function(scope) { return scope.someValue; },
-        function(newValue, oldValue, scope) { oldValueGiven = oldValue; }
+        (scope) => scope.someValue,
+        (newValue, oldValue, scope) => oldValueGiven = oldValue
       );
 
       scope.$digest();

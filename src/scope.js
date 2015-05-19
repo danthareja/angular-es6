@@ -1,32 +1,26 @@
-/* jshint globalstrict: true */
-'use strict';
+class Scope {
+  constructor() {
+    this.$$watchers = [];
+  }
 
-function Scope() {
-  this.$$watchers = [];
+  $watch(watchFn, listenerFn) {
+    var watcher = { watchFn, listenerFn, last: initWatchValue };
+    this.$$watchers.push(watcher);
+  }
+
+  $digest() {
+    var newValue, oldValue;
+    this.$$watchers.forEach(watcher => {
+      newValue = watcher.watchFn(this); // Arrow function has lexical 'this'
+      oldValue = watcher.last;
+      if (newValue !== oldValue) {
+        watcher.last = newValue;
+        watcher.listenerFn(newValue, oldValue === initWatchValue ? newValue : oldValue, this);
+      }
+    });
+  }
 }
 
 function initWatchValue() {}
 
-// watchFn(scope)
-// listenerFn(newValue, oldValue, scope)
-Scope.prototype.$watch = function(watchFn, listenerFn) {
-  var watcher = {
-    watchFn: watchFn,
-    listenerFn: listenerFn,
-    last: initWatchValue
-  };
-  this.$$watchers.push(watcher);
-};
-
-Scope.prototype.$digest = function() {
-  var self = this;
-  var newValue, oldValue;
-  _.forEach(this.$$watchers, function(watcher) {
-    newValue = watcher.watchFn(self);
-    oldValue = watcher.last;
-    if (newValue !== oldValue) {
-      watcher.last = newValue;
-      watcher.listenerFn(newValue, oldValue === initWatchValue ? newValue : oldValue, self);
-    }
-  });
-};
+export default Scope;
