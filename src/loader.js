@@ -28,7 +28,7 @@ function createModule(name, requires, modules) {
     name: name,
     requires: requires,
     constant(key, value) {
-      invokeQueue.push(['constant', [key, value]])
+      invokeQueue.push(['constant', [key, value]]);
     }
   };
 

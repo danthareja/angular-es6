@@ -86,6 +86,129 @@ describe('injector', ()=> {
     createInjector(['myModule']);
   });
 
+  it('invokes an annotated function with dependency injection ($inject)', ()=> {
+    let module = angular.module('myModule', []);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    let fn = (one, two)=> one + two; // implicit return
+    fn.$inject = ['a', 'b'];
+
+    expect(injector.invoke(fn)).toBe(3);
+  });
+
+  it('does not accept non-strings as injection tokens', ()=> {
+    let module = angular.module('myModule', []);
+    module.constant('a', 1);
+    let injector = createInjector(['myModule']);
+
+    let fn = (one, two)=> one + two;
+    fn.$inject = ['a', 2];
+
+    expect(()=> injector.invoke(fn)).toThrow();
+  });
+
+  it('invokes a function with the given this context', ()=> {
+    let module = angular.module('myModule', []);
+    module.constant('a', 1);
+    let injector = createInjector(['myModule']);
+
+    let obj = { 
+      two: 2,
+      fn(one) { return one + this.two; }
+    };
+    obj.fn.$inject = ['a'];
+
+    expect(injector.invoke(obj.fn, obj)).toBe(3);
+  });
+
+
+  it('overrides dependencies with locals when invoking', ()=> {
+    let module = angular.module('myModule', []);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    let fn = (one, two)=> one + two; // implicit return
+    fn.$inject = ['a', 'b'];
+
+    expect(injector.invoke(fn, null, {b:3})).toBe(4);
+  });
+
+  describe('annotate', function() {
+    it('returns the $inject annotation of a function when it has one', ()=> {
+      let injector = createInjector([]);
+
+      let fn = ()=> {};
+      fn.$inject = ['a', 'b'];
+
+      expect(injector.annotate(fn)).toEqual(['a', 'b']);
+    });
+
+    it('returns the array-style annotations of a function', ()=> {
+      let injector = createInjector([]);
+
+      let fn = ['a', 'b', ()=> {}];
+
+      expect(injector.annotate(fn)).toEqual(['a', 'b']);
+    });
+
+    it('returns an empty array for a non-annotated 0-arg function', ()=> {
+      let injector = createInjector([]);
+
+      let fn = ()=> {};
+
+      expect(injector.annotate(fn)).toEqual([]);
+    });
+
+    it('returns annotations parsed from function args when not annotated', ()=> {
+      let injector = createInjector([]);
+
+      let fn = (a,b)=> {};
+
+      expect(injector.annotate(fn)).toEqual(['a','b']);
+    });
+
+    it('strips comments from argument lists when parsing', ()=> {
+      let injector = createInjector([]);
+
+      let fn = (a, /*b,*/ c)=> {};
+
+      expect(injector.annotate(fn)).toEqual(['a','c']);
+    });
+
+    it('strips several comments from argument lists when parsing', ()=> {
+      let injector = createInjector([]);
+
+      let fn = (a, /*b,*/ c/*, d*/)=> {};
+
+      expect(injector.annotate(fn)).toEqual(['a','c']);
+    });
+
+    it('throws when using a non-annotated fn in strict mode', ()=> {
+      let injector = createInjector([], true);
+
+      let fn = (a,b,c)=> {};
+
+      expect(()=> injector.annotate(fn)).toThrow();
+    });
+  });
+
+  it('invokes an array-annotated function with DI', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule'])
+
+    let fn = ['a', 'b', (a, b)=> a + b];
+
+    expect(injector.invoke(fn)).toBe(3);
+  });
+
+
+
+
 
 // end describe('injector')
 });

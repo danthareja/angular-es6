@@ -1,6 +1,6 @@
 module.exports = function(config) {
   config.set({
-    browsers: ['Chrome'],
+    browsers: ['ChromeCanary'],
     frameworks: ['browserify', 'jasmine'],
     reporters: ['mocha'],
     files: [
