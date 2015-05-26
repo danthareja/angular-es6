@@ -206,9 +206,126 @@ describe('injector', ()=> {
     expect(injector.invoke(fn)).toBe(3);
   });
 
+  it('instantiates an annotated ($inject) constructor function with $inject', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    function Type(one, two) {
+      this.result = one + two;
+    }
+    Type.$inject = ['a', 'b'];
+
+    let instance = injector.instantiate(Type);
+    expect(instance.result).toBe(3);
+  });
+
+  it('instantiates an annotated ($inject) ES6 class', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    class Type {
+      constructor(one, two) {
+        this.result = one + two;
+      }
+    }
+    Type.$inject = ['a', 'b'];
+
+    let instance = injector.instantiate(Type);
+    expect(instance.result).toBe(3);
+  });
 
 
+  it('instantiates an array-annotated constructor function', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
 
+    function Type(one, two) {
+      this.result = one + two;
+    }
+
+    let instance = injector.instantiate(['a','b',Type]);
+    expect(instance.result).toBe(3);
+  });
+
+  it('instantiates an array-annotated ES6 class', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    class Type {
+      constructor(one, two) {
+        this.result = one + two;
+      }
+    }
+
+    let instance = injector.instantiate(['a','b',Type]);
+    expect(instance.result).toBe(3);
+  });
+
+  it('instantiates a non-annotated constructor function', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    function Type(a, b) {
+      this.result = a + b;
+    }
+
+    let instance = injector.instantiate(Type);
+    expect(instance.result).toBe(3);
+  });
+
+  it('instantiates a non-annotated ES6 class', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    class Type {
+      constructor(a, b) {
+        this.result = a + b;
+      }
+    }
+
+    let instance = injector.instantiate(Type);
+    expect(instance.result).toBe(3);
+  });
+
+  it('uses the prototype of the constructor when instantiating', ()=> {
+    function BaseType() {}
+    BaseType.prototype.getValue = _.constant(42);
+
+    function Type() { this.v = this.getValue(); }
+    Type.prototype = BaseType.prototype;
+
+    let module = angular.module('myModule', []);
+    let injector = createInjector(['myModule']);
+
+    let instance = injector.instantiate(Type);
+    expect(instance.v).toBe(42);
+  });
+
+  it('supports locals when instantiating', ()=> {
+    let module = angular.module('myModule',[]);
+    module.constant('a', 1);
+    module.constant('b', 2);
+    let injector = createInjector(['myModule']);
+
+    function Type(a, b) {
+      this.result = a + b;
+    }
+
+    let instance = injector.instantiate(Type, {b:3})
+    expect(instance.result).toBe(4);
+  });
 
 // end describe('injector')
 });

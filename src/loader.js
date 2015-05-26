@@ -44,5 +44,4 @@ function getModule (name, modules) {
   return modules.get(name);
 }
 
-
 export default setupModuleLoader;
