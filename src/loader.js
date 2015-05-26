@@ -1,21 +1,10 @@
 function setupModuleLoader(window) {
-  var ensure = (obj, name, factory)=> obj[name] || (obj[name] = factory());
+  let ensure = (obj, name, factory)=> obj[name] || (obj[name] = factory()); // Implicit return
 
-  var angular = ensure(window, 'angular', Object);
-
-  var createModule = (name, requires, modules)=> {
-    var moduleInstance = {
-      name: name,
-      requires: requires
-    };
-    modules[name] = moduleInstance;
-    return moduleInstance;
-  };
-
-  var getModule = (name, modules)=> modules[name];
+  let angular = ensure(window, 'angular', Object);
 
   ensure(angular, 'module', ()=> {
-    let modules = {};
+    let modules = new Map();
 
     return function (name, requires) {
       if (requires) {
@@ -27,5 +16,33 @@ function setupModuleLoader(window) {
   });
 
 }
+
+function createModule(name, requires, modules) {
+  if (name === 'hasOwnProperty') {
+    throw 'hasOwnProperty is not allowed as a module name';
+  }
+
+  let invokeQueue = [];
+  let moduleInstance = {
+    _invokeQueue: invokeQueue,
+    name: name,
+    requires: requires,
+    constant(key, value) {
+      invokeQueue.push(['constant', [key, value]])
+    }
+  };
+
+  modules.set(name, moduleInstance);
+  return moduleInstance;
+}
+
+function getModule (name, modules) {
+  if (!modules.has(name)) {
+    throw 'Module ${name} is not available';
+  }
+
+  return modules.get(name);
+}
+
 
 export default setupModuleLoader;

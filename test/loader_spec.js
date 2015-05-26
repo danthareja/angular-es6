@@ -51,6 +51,14 @@ describe('setupModuleLoader', ()=> {
       expect(gotModule).toBe(myModule);
     });
 
+    it('throws when trying to get an nonexistent module' , ()=> {
+      expect(()=> window.angular.module('myModule')).toThrow();
+    });
+
+    it('does not allow a module to be called hasOwnProperty' , ()=> {
+      expect(()=> window.angular.module('hasOwnProperty', [])).toThrow();
+    });
+
     // end describe('modules')
   });
   // end describe('setupModuleLoader')
