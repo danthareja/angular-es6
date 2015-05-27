@@ -4,9 +4,19 @@ function createInjector(modulesToLoad, strictDi) {
   const FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
   const FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
   const STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
+  const INSTANTIATING = {};
 
-  let cache = new Map();
+  let providerCache = new Map();
+  let providerInjector = createInternalInjector(providerCache, ()=> {
+    throw 'Unknown provider'
+  });
+  let instanceCache = new Map();
+  let instanceInjector = createInternalInjector(instanceCache, (name)=> {
+    let provider = providerInjector.get(`${name}Provider`);
+    return instanceInjector.invoke(provider.$get, provider);
+  })
   let loadedModules = new Set();
+
   strictDi = (strictDi === true); // explicit 'true', not just truthy
 
   // Holds functionality of each module component. mirrors interface of moduleInstance's methods
@@ -17,7 +27,14 @@ function createInjector(modulesToLoad, strictDi) {
       if (key === 'hasOwnProperty') {
         throw 'hasOwnProperty is not a valid constant name!';
       }
-      cache.set(key, value);
+      instanceCache.set(key, value);
+      providerCache.set(key, value);
+    },
+    provider(key, provider) {
+      if (_.isFunction(provider)) {
+        provider = providerInjector.instantiate(provider);
+      }
+      providerCache.set(`${key}Provider`, provider);
     }
   };
 
@@ -34,6 +51,66 @@ function createInjector(modulesToLoad, strictDi) {
     }
   });
 
+  function createInternalInjector(cache, factoryFn) {  
+    function getService(name) {
+      if (cache.has(name)) {
+        if (cache.get(name) === INSTANTIATING) {
+          throw new Error('Circular dependency found');
+        }
+        return cache.get(name); 
+      } else {
+        cache.set(name, INSTANTIATING);
+        try {
+          let cached = factoryFn(name);
+          cache.set(name, cached);
+          return cached;
+        } finally {
+          if (cache.get(name) === INSTANTIATING) {
+            cache.delete(name);
+          }
+        }
+      }
+    }
+
+    // Perform dependency injection
+    function invoke(fn, self, locals = {}) {
+      // Lookup registered module component's values that have already been loaded
+      let args = _.map(annotate(fn), (token) => {
+        if (_.isString(token)) {
+          return locals.hasOwnProperty(token) ?
+            locals[token] :
+            getService(token);
+        } else {
+          throw 'Incorrect injection token! Expected string, got ${token}';
+        }
+      });
+
+      // Unwrap array-annotated fn
+      if (_.isArray(fn)) {
+        fn = _.last(fn);
+      }
+
+      return fn.apply(self, args);
+    }
+
+    function instantiate(Type, locals = {}) {
+      // unwrap array-annotated Type
+      var UnwrappedType = _.isArray(Type) ? _.last(Type) : Type;
+      var instance = Object.create(UnwrappedType.prototype);
+      invoke(Type, instance, locals);
+      return instance;
+    }
+
+    return {
+      annotate,
+      invoke,
+      instantiate,
+      get: getService,
+      has(key) { 
+        return cache.has(key) || providerCache.has(`${key}Provider`); 
+      }
+    };
+  }
 
   // Determine what arguments to inject to a function. Handles 3 cases:
     // (1) Decorate fn with a $inject property
@@ -54,42 +131,7 @@ function createInjector(modulesToLoad, strictDi) {
     return _.map(argDeclaration[1].split(','), (argName) => argName.match(FN_ARG)[2]);
   }
 
-  // Perform dependency injection
-  function invoke(fn, self, locals = {}) {
-    // Lookup registered module component's values that have already been loaded
-    let args = _.map(annotate(fn), (token) => {
-      if (_.isString(token)) {
-        return locals.hasOwnProperty(token) ?
-          locals[token] :
-          cache.get(token);
-      } else {
-        throw 'Incorrect injection token! Expected string, got ${token}';
-      }
-    });
-
-    // Unwrap array-annotated fn
-    if (_.isArray(fn)) {
-      fn = _.last(fn);
-    };
-
-    return fn.apply(self, args);
-  }
-
-  function instantiate(Type, locals = {}) {
-    // unwrap array-annotated Type
-    var UnwrappedType = _.isArray(Type) ? _.last(Type) : Type;
-    var instance = Object.create(UnwrappedType.prototype);
-    invoke(Type, instance, locals);
-    return instance
-  }
-
-  return {
-    annotate,
-    invoke,
-    instantiate,
-    has(key) { return cache.has(key); },
-    get(key) { return cache.get(key); }
-  };
+  return instanceInjector;
 }
 
 export default createInjector;

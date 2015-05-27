@@ -1,4 +1,5 @@
 function setupModuleLoader(window) {
+  // Only allows factory fn to be invoked once
   let ensure = (obj, name, factory)=> obj[name] || (obj[name] = factory()); // Implicit return
 
   let angular = ensure(window, 'angular', Object);
@@ -14,7 +15,6 @@ function setupModuleLoader(window) {
       }
     };
   });
-
 }
 
 function createModule(name, requires, modules) {
@@ -23,13 +23,21 @@ function createModule(name, requires, modules) {
   }
 
   let invokeQueue = [];
+
+  // Configures a particular method of $provide
+  let invokeLater = function(method, arrayMethod) {
+    return function(...args) {
+      invokeQueue[arrayMethod || 'push']([method, args]);
+      return moduleInstance;
+    };
+  };
+
   let moduleInstance = {
     _invokeQueue: invokeQueue,
     name: name,
     requires: requires,
-    constant(key, value) {
-      invokeQueue.push(['constant', [key, value]]);
-    }
+    constant: invokeLater('constant', 'unshift'),
+    provider: invokeLater('provider')
   };
 
   modules.set(name, moduleInstance);
