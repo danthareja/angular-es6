@@ -8,7 +8,7 @@ function createInjector(modulesToLoad, strictDi) {
 
   let providerCache = {};
   let providerInjector = providerCache.$injector = createInternalInjector(providerCache, ()=> {
-    throw 'Unknown provider'
+    throw 'Unknown provider';
   });
 
   let instanceCache = {};
@@ -40,6 +40,9 @@ function createInjector(modulesToLoad, strictDi) {
         provider = providerInjector.instantiate(provider);
       }
       providerCache[`${key}Provider`] = provider;
+    },
+    factory(key, factoryFn) {
+      this.provider(key, {$get: factoryFn});
     }
   };
 
@@ -75,7 +78,7 @@ function createInjector(modulesToLoad, strictDi) {
           return cache[name] = factoryFn(name);
         } finally {
           if (cache[name] === INSTANTIATING) {
-            delete cache[name]
+            delete cache[name];
           }
         }
       }
@@ -129,8 +132,10 @@ function createInjector(modulesToLoad, strictDi) {
 
       _.each(module.requires, loadModule);
       // Array destructuring: _invokeQueue[0] = method, _invokeQueue[1] = args
-      // Spread ...args into method providerCache.$provide[method] instead of apply
-      _.each(module._invokeQueue, ([method, args])=> providerCache.$provide[method].apply(providerCache.$provide, args));
+      _.each(module._invokeQueue, ([service, method, args])=> {
+        let $service = providerInjector.get(service);
+        $service[method].apply($service, args);
+      });
     }
   });
 

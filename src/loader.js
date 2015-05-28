@@ -25,9 +25,9 @@ function createModule(name, requires, modules) {
   let invokeQueue = [];
 
   // Configures a particular method of $provide
-  let invokeLater = function(method, arrayMethod = 'push') {
+  let invokeLater = function(service, method, arrayMethod = 'push', queue = invokeQueue) {
     return function(...args) {
-      invokeQueue[arrayMethod]([method, args]);
+      queue[arrayMethod]([service, method, args]);
       return moduleInstance;
     };
   };
@@ -36,8 +36,12 @@ function createModule(name, requires, modules) {
     _invokeQueue: invokeQueue,
     name: name,
     requires: requires,
-    constant: invokeLater('constant', 'unshift'),
-    provider: invokeLater('provider')
+    constant: invokeLater('$provide', 'constant', 'unshift'),
+    provider: invokeLater('$provide', 'provider'),
+    factory: invokeLater('$provide', 'factory'),
+    // .. TODO: factory, service, etc..
+    directive: invokeLater('$compileProvider', 'directive')
+
   };
 
   modules.set(name, moduleInstance);
