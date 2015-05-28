@@ -25,9 +25,9 @@ function createModule(name, requires, modules) {
   let invokeQueue = [];
 
   // Configures a particular method of $provide
-  let invokeLater = function(method, arrayMethod) {
+  let invokeLater = function(method, arrayMethod = 'push') {
     return function(...args) {
-      invokeQueue[arrayMethod || 'push']([method, args]);
+      invokeQueue[arrayMethod]([method, args]);
       return moduleInstance;
     };
   };

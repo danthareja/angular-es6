@@ -497,5 +497,35 @@ describe('injector', ()=> {
     
     expect(injector.get('a')).toBe(42);
   });
+
+  it('allows injecting the instance injector to $get', ()=> {
+    let module = angular.module('myModule', []);
+
+    module.constant('a', 42);
+    module.provider('b', function BProvider() {
+      this.$get = ($injector)=> $injector.get('a')
+    });
+
+    let injector = createInjector(['myModule']);
+
+    expect(injector.get('b')).toBe(42);
+  });
+
+  it('allows injecting the provider injector to provider', ()=> {
+    let module = angular.module('myModule', []);
+
+    module.provider('a', function AProvider() {
+      this.value = 42;
+      this.$get = ()=> this.value;
+    });
+    module.provider('b', function BProvider($injector) {
+      let aProvider = $injector.get('aProvider');
+      this.$get = ()=> aProvider.value;
+    });
+
+    let injector = createInjector(['myModule']);
+
+    expect(injector.get('b')).toBe(42);
+  });
 // end describe('injector')
 });
