@@ -50,7 +50,7 @@ function createModule(name, requires, modules) {
 
 function getModule (name, modules) {
   if (!modules.has(name)) {
-    throw 'Module ${name} is not available';
+    throw 'Module ' + name + ' is not available';
   }
 
   return modules.get(name);

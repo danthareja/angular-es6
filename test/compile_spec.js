@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import $ from 'jquery';
 import setupModuleLoader from '../src/loader';
 import createInjector from '../src/injector';
 import $CompileProvider from '../src/compile';
@@ -53,6 +54,52 @@ describe('$compile', ()=> {
     expect(injector.has('bDirective')).toBe(true);
     expect(injector.has('cDirective')).toBe(true);
   });
+
+
+  function makeInjectorWithDirectives(...args) {
+    return createInjector(['ng', ($compileProvider) => {
+      $compileProvider.directive.apply($compileProvider, args);
+    }]);
+  }
+
+  it('compiles element directives from a single element', ()=> {
+    // (1) create a module with myDirective and an injector for it
+    let injector = makeInjectorWithDirectives('myDirective', ()=> {
+      return {
+        compile(element) {
+          element.data('hasCompiled', true);
+        }
+      };
+    });
+
+    injector.invoke(($compile)=> {
+      // (2) use jQuery to parse a DOM fragment with the <my-directive> elment
+      let el = $('<my-directive></my-directive>');
+      // (3) get $compile from injector created in (1) and invoke it with ele in (2)
+      $compile(el);
+      expect(el.data('hasCompiled')).toBe(true);
+    });
+  });
+
+  it('compiles element directives from multiple elements', ()=> {
+    let count = 1;
+    let injector = makeInjectorWithDirectives('myDirective', ()=> {
+      return {
+        compile(element) {
+          element.data('hasCompiled', count++);
+        }
+      };
+    });
+
+    injector.invoke(($compile)=> {
+      let el = $('<my-directive></my-directive><my-directive></my-directive>');
+      $compile(el);
+      expect(el.eq(0).data('hasCompiled')).toBe(1);
+      expect(el.eq(1).data('hasCompiled')).toBe(2);
+    });
+  });
+
+
 
 // end describe('compile')  
 });

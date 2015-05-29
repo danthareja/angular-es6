@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import $ from 'jquery';
+import createInjector from './injector';
 
 function $CompileProvider($provide) {
 
@@ -25,10 +27,48 @@ function $CompileProvider($provide) {
     }
   };
 
-  this.$get = function() {
+  this.$get = ['$injector', function($injector) {
 
-  };
+    function compile($compileNodes) {
+      return compileNodes($compileNodes);
+    }
 
+    function compileNodes($compileNodes) {
+      _.forEach($compileNodes, (node)=> {
+        let directives = collectDirectives(node);
+        applyDirectivesToNode(directives, node);
+      });
+    }
+
+    function applyDirectivesToNode(directives, compileNode) {
+      let $compileNode = $(compileNode);
+      _.forEach(directives, (directive)=> {
+        if (directive.compile) {
+          directive.compile($compileNode);
+        }
+      });
+    }
+
+    function collectDirectives(node) {
+      let directives = [];
+      let normalizedNodeName = _.camelCase(nodeName(node).toLowerCase());
+      addDirective(directives, normalizedNodeName);
+      return directives;
+    }
+
+    function nodeName(element) {
+      return element.nodeName ? element.nodeName : element[0].nodeName;
+    }
+
+    function addDirective(directives, name) {
+      if (hasDirectives.hasOwnProperty(name)) {
+        // concat return from injector (array) to directives array
+        [].push.apply(directives, $injector.get(`${name}Directive`));
+      }
+    }
+
+    return compile; // what gets injected at the $compile service
+  }];
 }
 
 $CompileProvider.$inject = ['$provide'];

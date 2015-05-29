@@ -125,17 +125,21 @@ function createInjector(modulesToLoad, strictDi) {
   }
 
   // Recursively cache module components, previously registered in invokeQueue
-  _.each(modulesToLoad, function loadModule(moduleName) {
-    if (!loadedModules.has(moduleName)) {
-      loadedModules.add(moduleName);
-      let module = angular.module(moduleName);
+  _.forEach(modulesToLoad, function loadModule(moduleName) {
+    if (_.isString(moduleName)) {
+      if (!loadedModules.has(moduleName)) {
+        loadedModules.add(moduleName);
+        let module = angular.module(moduleName);
 
-      _.each(module.requires, loadModule);
-      // Array destructuring: _invokeQueue[0] = method, _invokeQueue[1] = args
-      _.each(module._invokeQueue, ([service, method, args])=> {
-        let $service = providerInjector.get(service);
-        $service[method].apply($service, args);
-      });
+        _.forEach(module.requires, loadModule);
+        // Array destructuring: _invokeQueue[0] = method, _invokeQueue[1] = args
+        _.forEach(module._invokeQueue, ([service, method, args])=> {
+          let $service = providerInjector.get(service);
+          $service[method].apply($service, args);
+        });
+      }
+    } else if (_.isFunction(moduleName) || _.isArray(moduleName)) {
+      providerInjector.invoke(moduleName);
     }
   });
 
